@@ -15,7 +15,7 @@ angular.module('angularLazyImg', []);
 
 angular.module('angularLazyImg').factory('LazyImgMagic', [
   '$window', '$rootScope', 'lazyImgConfig', 'lazyImgHelpers',
-  function($window, $rootScope, lazyImgConfig, lazyImgHelpers){
+  function ($window, $rootScope, lazyImgConfig, lazyImgHelpers) {
     'use strict';
 
     var winDimensions, $win, images, isListening, options;
@@ -26,25 +26,30 @@ angular.module('angularLazyImg').factory('LazyImgMagic', [
     options = lazyImgConfig.getOptions();
     $win = angular.element($window);
     winDimensions = lazyImgHelpers.getWinDimensions();
-    saveWinOffsetT = lazyImgHelpers.throttle(function(){
+    saveWinOffsetT = lazyImgHelpers.throttle(function () {
       winDimensions = lazyImgHelpers.getWinDimensions();
     }, 60);
     containers = [options.container || $win];
 
-    function checkImages(){
-      for(var i = images.length - 1; i >= 0; i--){
+    function checkImages() {
+      for (var i = images.length - 1; i >= 0; i--) {
         var image = images[i];
-        if(image && lazyImgHelpers.isElementInView(image.$elem[0], options.offset, winDimensions)){
+        if (image && lazyImgHelpers.isElementInView(image.$elem[0], options.offset, winDimensions) && !image.viewed) {
           loadImage(image);
-          images.splice(i, 1);
+          images[i].viewed = true;
+        } else if (image && lazyImgHelpers.isElementHidden(image.$elem[0], options.offset, winDimensions)) {
+          setPhotoSrc(image.$elem, null);
+          images[i].viewed = false;
         }
       }
-      if(images.length === 0){ stopListening(); }
+      if (images.length === 0) {
+        stopListening();
+      }
     }
 
     checkImagesT = lazyImgHelpers.throttle(checkImages, 30);
 
-    function listen(param){
+    function listen(param) {
       containers.forEach(function (container) {
         container[param]('scroll', checkImagesT);
         container[param]('touchmove', checkImagesT);
@@ -53,38 +58,38 @@ angular.module('angularLazyImg').factory('LazyImgMagic', [
       $win[param]('resize', saveWinOffsetT);
     }
 
-    function startListening(){
+    function startListening() {
       isListening = true;
-      setTimeout(function(){
+      setTimeout(function () {
         checkImages();
         listen('on');
       }, 1);
     }
 
-    function stopListening(){
+    function stopListening() {
       isListening = false;
       listen('off');
     }
 
-    function removeImage(image){
+    function removeImage(image) {
       var index = images.indexOf(image);
-      if(index !== -1) {
+      if (index !== -1) {
         images.splice(index, 1);
       }
     }
 
-    function loadImage(photo){
+    function loadImage(photo) {
       var img = new Image();
-      img.onerror = function(){
-        if(options.errorClass){
+      img.onerror = function () {
+        if (options.errorClass) {
           photo.$elem.addClass(options.errorClass);
         }
         $rootScope.$emit('lazyImg:error', photo);
         options.onError(photo);
       };
-      img.onload = function(){
+      img.onload = function () {
         setPhotoSrc(photo.$elem, photo.src);
-        if(options.successClass){
+        if (options.successClass) {
           photo.$elem.addClass(options.successClass);
         }
         $rootScope.$emit('lazyImg:success', photo);
@@ -93,31 +98,43 @@ angular.module('angularLazyImg').factory('LazyImgMagic', [
       img.src = photo.src;
     }
 
-    function setPhotoSrc($elem, src){
+    function setPhotoSrc($elem, src) {
       if ($elem[0].nodeName.toLowerCase() === 'img') {
         $elem[0].src = src;
       } else {
         $elem.css('background-image', 'url("' + src + '")');
       }
+
+      if (src == null) {
+        if ($elem[0].nodeName.toLowerCase() === 'img') {
+          $elem[0].removeAttribute('src');
+        } else {
+          $elem[0].removeAttribute('style');
+        }
+      }
     }
 
     // PHOTO
-    function Photo($elem){
+    function Photo($elem) {
       this.$elem = $elem;
     }
 
-    Photo.prototype.setSource = function(source){
+    Photo.prototype.setSource = function (source) {
       this.src = source;
       images.unshift(this);
-      if (!isListening){ startListening(); }
+      if (!isListening) {
+        startListening();
+      }
     };
 
-    Photo.prototype.removeImage = function(){
+    Photo.prototype.removeImage = function () {
       removeImage(this);
-      if(images.length === 0){ stopListening(); }
+      if (images.length === 0) {
+        stopListening();
+      }
     };
 
-    Photo.prototype.checkImages = function(){
+    Photo.prototype.checkImages = function () {
       checkImages();
     };
 

@@ -1,8 +1,8 @@
 angular.module('angularLazyImg').factory('lazyImgHelpers', [
-  '$window', function($window){
+  '$window', function ($window) {
     'use strict';
 
-    function getWinDimensions(){
+    function getWinDimensions() {
       return {
         height: $window.innerHeight,
         width: $window.innerWidth
@@ -13,10 +13,17 @@ angular.module('angularLazyImg').factory('lazyImgHelpers', [
       var rect = elem.getBoundingClientRect();
       var bottomline = winDimensions.height + offset;
       return (
-       rect.left >= 0 && rect.right <= winDimensions.width + offset && (
-         rect.top >= 0 && rect.top <= bottomline ||
-         rect.bottom <= bottomline && rect.bottom >= 0 - offset
+        rect.left >= 0 && rect.right <= winDimensions.width + offset && (
+          rect.top >= 0 && rect.top <= bottomline ||
+          rect.bottom <= bottomline && rect.bottom >= 0 - offset
         )
+      );
+    }
+
+    function isElementHidden(elem, offset, winDimensions) {
+      var rect = elem.getBoundingClientRect();
+      return !(
+        rect.right >= 0 && rect.left <= winDimensions.width + rect.width
       );
     }
 
@@ -26,7 +33,7 @@ angular.module('angularLazyImg').factory('lazyImgHelpers', [
       return function () {
         var context = scope || this;
         var now = +new Date(),
-            args = arguments;
+          args = arguments;
         if (last && now < last + threshhold) {
           clearTimeout(deferTimer);
           deferTimer = setTimeout(function () {
@@ -42,6 +49,7 @@ angular.module('angularLazyImg').factory('lazyImgHelpers', [
 
     return {
       isElementInView: isElementInView,
+      isElementHidden: isElementHidden,
       getWinDimensions: getWinDimensions,
       throttle: throttle
     };
